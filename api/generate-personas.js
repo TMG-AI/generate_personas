@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const busboy = Busboy({ 
       headers: req.headers,
       limits: {
-        fileSize: 10 * 1024 * 1024, // 50MB limit per file
+        fileSize: 50 * 1024 * 1024, // 50MB limit per file
         files: 13, // up to 13 files (3 data files + 10 images)
       }
     });
