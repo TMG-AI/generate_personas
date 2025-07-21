@@ -108,30 +108,37 @@
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group:first-of-type {
+            margin-top: 1rem;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             font-weight: 600;
             color: #1a365d;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
         }
 
         .form-group .description {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #64748b;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.6rem;
+            line-height: 1.4;
         }
 
         .form-control {
             width: 100%;
-            padding: 1rem;
+            padding: 0.75rem;
             border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
             transition: border-color 0.3s;
+            line-height: 1.4;
         }
 
         .form-control:focus {
@@ -142,6 +149,14 @@
         textarea.form-control {
             resize: vertical;
             min-height: 80px;
+            font-family: inherit;
+            line-height: 1.5;
+            padding: 0.75rem 0.75rem 1rem 0.75rem;
+        }
+
+        .form-control::placeholder {
+            color: #a0aec0;
+            font-size: 0.85rem;
         }
 
         .file-upload-area {
@@ -165,13 +180,14 @@
         }
 
         .upload-text {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #4a5568;
-            margin-bottom: 0.1rem;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
         }
 
         .upload-subtext {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #64748b;
         }
 
@@ -496,7 +512,7 @@
             <div class="main-content">
                 <!-- Generate Personas Card -->
                 <div class="upload-form">
-                    <h2 style="color: #1a365d; margin-bottom: 1rem; font-size: 1.5rem;">Generate Digital Twins</h2>
+                    <h2 style="color: #1a365d; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">Generate Digital Twins</h2>
                     <p class="description">Create AI personas based on your case data, target audience, and social insights.</p>
                     
                     <form id="generateForm">
@@ -517,7 +533,7 @@
 
                         <div class="form-group">
                             <label for="persona_count">Number of Personas (1-100)</label>
-                            <input type="number" id="persona_count" name="persona_count" class="form-control" min="1" max="100" value="15" required>
+                            <input type="number" id="persona_count" name="persona_count" class="form-control" min="1" max="100" placeholder="e.g., 15" required>
                         </div>
 
                         <div class="form-group">
@@ -577,10 +593,10 @@
 
                 <!-- Poll All Personas Card -->
                 <div class="upload-form">
-                    <h2 style="color: #1a365d; margin-bottom: 1rem; font-size: 1.5rem;">Poll All Personas</h2>
+                    <h2 style="color: #1a365d; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">Poll All Personas</h2>
                     <p class="description">Ask a question to ALL personas at once and get percentage breakdowns of responses.</p>
 
-                    <div class="form-group">
+                    <div class="form-group" style="margin-top: 1rem;">
                         <label for="pollQuestion">Question for All Personas</label>
                         <p class="description">Ask any question and get responses from all generated personas</p>
                         <textarea id="pollQuestion" class="form-control" placeholder="Example: How likely are you to contact a law firm that offers free consultation? What factors would influence your decision?" rows="3"></textarea>
@@ -598,8 +614,8 @@
 
                     <div class="divider"></div>
 
-                    <h3 style="color: #1a365d; font-size: 1.2rem; margin-bottom: 1rem;">Individual Chat</h3>
-                    <p class="description">Describe the type of persona you want to chat with, and we'll create one for you.</p>
+                    <h3 style="color: #1a365d; font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600;">Individual Chat</h3>
+                    <p class="description">Describe the type of persona you want to chat with.</p>
 
                     <div id="personaCreationInterface">
                         <div class="form-group">
@@ -608,7 +624,7 @@
                         </div>
 
                         <button class="btn" id="createPersonaBtn">
-                            Create & Chat with This Persona
+                            Chat with This Persona
                         </button>
                     </div>
 
