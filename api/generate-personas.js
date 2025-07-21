@@ -118,7 +118,7 @@ export default async function handler(req, res) {
     console.log('📁 Files:', Object.keys(files));
 
     // REPLACE THESE WITH YOUR ACTUAL N8N WEBHOOK URLS
-    const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://your-n8n-instance.com/webhook/focus-group-trigger';
+    const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://swheatman.app.n8n.cloud/webhook/focus-group-trigger';
     
     const webhookResponse = await fetch(generatePersonasWebhookUrl, {
       method: 'POST',
