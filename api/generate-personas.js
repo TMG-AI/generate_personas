@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 export const config = {
   api: {
     bodyParser: false,
-    maxDuration: 800, // 13+ minutes for persona generation
+    maxDuration: 800,
   },
 };
 
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
     const busboy = Busboy({ 
       headers: req.headers,
       limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB limit - this was working
-        files: 13, // up to 13 files (3 data files + 10 images)
+        fileSize: 50 * 1024 * 1024,
+        files: 13,
       }
     });
     
@@ -82,29 +82,22 @@ export default async function handler(req, res) {
         reject(err);
       });
       
-      // Timeout after 60 seconds
       setTimeout(() => {
         reject(new Error('Upload timeout'));
       }, 60000);
     });
 
-    // Pipe the request to busboy
     req.pipe(busboy);
-    
-    // Wait for upload to complete
     await uploadPromise;
 
     console.log('📦 Creating FormData for n8n webhook...');
     
-    // Create form data to send to n8n webhook
     const formData = new FormData();
     
-    // Add all form fields
     Object.keys(fields).forEach(key => {
       formData.append(key, fields[key]);
     });
     
-    // Add all files
     Object.keys(files).forEach(fieldname => {
       const file = files[fieldname];
       formData.append(fieldname, file.buffer, {
@@ -117,7 +110,6 @@ export default async function handler(req, res) {
     console.log('📊 Form fields:', Object.keys(fields));
     console.log('📁 Files:', Object.keys(files));
 
-    // REPLACE WITH YOUR ACTUAL N8N WEBHOOK URL
     const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://your-n8n-instance.com/webhook/focus-group-trigger';
     
     const webhookResponse = await fetch(generatePersonasWebhookUrl, {
@@ -140,17 +132,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get the response from n8n
     const responseText = await webhookResponse.text();
     console.log('📥 N8N response received, length:', responseText.length);
 
-    // N8N might return JSON or just a success message
     let responseData;
     try {
       responseData = JSON.parse(responseText);
       console.log('✅ JSON parsed successfully');
     } catch (parseError) {
-      // If not JSON, treat as success message
       responseData = { 
         success: true, 
         message: responseText || 'Persona generation started successfully' 
