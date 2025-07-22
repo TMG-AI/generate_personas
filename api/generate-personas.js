@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const busboy = Busboy({ 
       headers: req.headers,
       limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB limit per file
+        fileSize: 50 * 1024 * 1024, // Increased to 50MB
         files: 13, // up to 13 files (3 data files + 10 images)
       }
     });
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
     // Handle file uploads
     busboy.on('file', (fieldname, file, info) => {
-      console.log('📄 File detected:', fieldname, info.filename);
+      console.log('📄 File detected:', fieldname, info.filename, info.mimeType);
       
       const chunks = [];
       
@@ -55,25 +55,27 @@ export default async function handler(req, res) {
       });
       
       file.on('end', () => {
+        const buffer = Buffer.concat(chunks);
         files[fieldname] = {
-          buffer: Buffer.concat(chunks),
+          buffer: buffer,
           filename: info.filename || `${fieldname}.csv`,
-          contentType: info.mimeType || 'text/csv'
+          contentType: info.mimeType || 'text/csv',
+          size: buffer.length
         };
-        console.log('✅ File collected:', fieldname, files[fieldname].filename);
+        console.log('✅ File collected:', fieldname, files[fieldname].filename, `${files[fieldname].size} bytes`);
       });
     });
 
     // Handle form fields
     busboy.on('field', (fieldname, value) => {
       fields[fieldname] = value;
-      console.log('📝 Field collected:', fieldname);
+      console.log('📝 Field collected:', fieldname, typeof value === 'string' ? value.substring(0, 50) + '...' : value);
     });
 
     // Handle completion
     const uploadPromise = new Promise((resolve, reject) => {
       busboy.on('finish', () => {
-        console.log('✅ Busboy finished');
+        console.log('✅ Busboy finished processing');
         resolve();
       });
       
@@ -95,37 +97,41 @@ export default async function handler(req, res) {
     await uploadPromise;
 
     console.log('📦 Creating FormData for n8n webhook...');
+    console.log('📊 Form fields:', Object.keys(fields));
+    console.log('📁 Files received:', Object.keys(files));
     
     // Create form data to send to n8n webhook
     const formData = new FormData();
     
-    // Add all form fields
+    // Add all form fields first
     Object.keys(fields).forEach(key => {
       formData.append(key, fields[key]);
+      console.log(`📝 Added field: ${key}`);
     });
     
-    // Add all files
+    // Add all files with proper options
     Object.keys(files).forEach(fieldname => {
       const file = files[fieldname];
       formData.append(fieldname, file.buffer, {
         filename: file.filename,
-        contentType: file.contentType
+        contentType: file.contentType,
+        knownLength: file.size
       });
+      console.log(`📁 Added file: ${fieldname} (${file.filename}, ${file.size} bytes)`);
     });
 
-    console.log('🌐 Sending to n8n webhook...');
-    console.log('📊 Form fields:', Object.keys(fields));
-    console.log('📁 Files:', Object.keys(files));
-
-    // REPLACE THESE WITH YOUR ACTUAL N8N WEBHOOK URLS
-    const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://swheatman.app.n8n.cloud/webhook/focus-group-trigger';
+    // REPLACE WITH YOUR ACTUAL N8N WEBHOOK URL
+    const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://your-n8n-instance.com/webhook/focus-group-trigger';
     
+    console.log('🌐 Sending to n8n webhook:', generatePersonasWebhookUrl);
+
     const webhookResponse = await fetch(generatePersonasWebhookUrl, {
       method: 'POST',
       body: formData,
       headers: {
         ...formData.getHeaders(),
       },
+      timeout: 120000 // 2 minute timeout
     });
 
     console.log('📊 N8N Webhook response:', webhookResponse.status, webhookResponse.statusText);
@@ -163,6 +169,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Digital twins generation started successfully! You will receive the report via email.',
+      files_processed: Object.keys(files).length,
+      fields_processed: Object.keys(fields).length,
       data: responseData
     });
 
