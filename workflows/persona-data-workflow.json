@@ -1,0 +1,668 @@
+{
+  "name": "Persona Data Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "focus-group-trigger",
+        "options": {
+          "binaryPropertyName": "mri_file,targetsmart_file,client_file"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -660,
+        -20
+      ],
+      "id": "ccf79cc4-8930-40b6-ae83-d0e2dfd3552e",
+      "name": "Webhook",
+      "webhookId": "0f1ee66e-71b9-42b2-9626-9b5876648a48"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.fileType}}",
+                    "rightValue": "targetsmart",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "dd6007d6-e4d9-4071-bf15-79c5a543bc5a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5c418070-9089-4104-aa60-c5e5daca1e3f",
+                    "leftValue": "={{$json.fileType}}",
+                    "rightValue": "mri",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7fc9e9ec-c198-4423-a573-441c2c7bee6f",
+                    "leftValue": "={{$json.fileType}}",
+                    "rightValue": "client",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -100,
+        -20
+      ],
+      "id": "9eb12c71-b411-4b26-b54d-c9366359fb4b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "64a4a9d1-58f9-4f64-941b-80130bc75f23",
+              "name": "=matter",
+              "value": "={{$json[\"matter\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "e7e19115-10f5-4974-b7da-0760ca8088e7",
+              "name": "=keywords",
+              "value": "={{$json[\"keywords\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "d1d01f3e-e265-4f4b-8324-964c3f4efbbc",
+              "name": "=target_description\t",
+              "value": "={{$json[\"target_description\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "0005fe28-5820-4678-ad06-7cad4c0e602c",
+              "name": "=creatives\t",
+              "value": "={{$json[\"creatives\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "cc26afb3-5693-4e25-a7cc-bd9f8d2b536e",
+              "name": "uploaded_files",
+              "value": "={{$binary}}",
+              "type": "string"
+            },
+            {
+              "id": "9ce074ef-95f1-4b09-b64d-ee0ac2c03287",
+              "name": "persona_count",
+              "value": "={{$json[\"persona_count\"] || 10}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -360,
+        -240
+      ],
+      "id": "8abac82c-51a0-4836-95ac-33b98f0f4051",
+      "name": "Preserve_Webhook"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        520,
+        -140
+      ],
+      "id": "0f1c63eb-bc5e-4fcb-8b52-20aa2be87e14",
+      "name": "Merge_All_Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "30a3f4c5-a125-4b96-bb8e-bb31687cf91a",
+              "name": "mri_data",
+              "value": "={{$json}}",
+              "type": "string"
+            },
+            {
+              "id": "59300709-1722-43f0-83a6-b26a8c03d4ae",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        -20
+      ],
+      "id": "438b5c15-610f-4f51-b55a-35391eeae51c",
+      "name": "Set_MRI"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "30a3f4c5-a125-4b96-bb8e-bb31687cf91a",
+              "name": "targetsmart",
+              "value": "={{$json}}",
+              "type": "string"
+            },
+            {
+              "id": "59300709-1722-43f0-83a6-b26a8c03d4ae",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        -180
+      ],
+      "id": "6f0d2fe8-62af-4d49-9f67-7d01d3b3b1e8",
+      "name": "Set_TargetSmart"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "30a3f4c5-a125-4b96-bb8e-bb31687cf91a",
+              "name": "client",
+              "value": "={{$json}}",
+              "type": "string"
+            },
+            {
+              "id": "59300709-1722-43f0-83a6-b26a8c03d4ae",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        160
+      ],
+      "id": "209ce035-1d86-4468-b147-b370569bb361",
+      "name": "Set_Client"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an analyst extracting social insights for legal advertising strategy.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Search Reddit, X (Twitter), Facebook, and Instagram for recent discussions about: {{ $json.body.keywords }}\\n\\nFocus on finding:\\n1. Common pain points and frustrations people express\\n2. Objections or skepticism toward solutions\\n3. Emotional language and sentiment patterns\\n4. Trust factors and credibility concerns\\n5. Demographic indicators in the language/context\\n\\nFor legal advertising specifically, also look for:\\n- Past experiences with law firms\\n- Hesitations about legal action\\n- Financial concerns about legal costs\\n- Preferred communication channels\\n\\nOutput structured JSON:\\n{\\n  \\\"pain_points\\\": [\\\"specific pain points found\\\"],\\n  \\\"objections\\\": [\\\"common objections/hesitations\\\"],\\n  \\\"emotional_tone\\\": [\\\"dominant emotions: angry, frustrated, hopeful, etc\\\"],\\n  \\\"trust_factors\\\": [\\\"what builds credibility for this audience\\\"],\\n  \\\"communication_preferences\\\": [\\\"how they prefer to be contacted\\\"],\\n  \\\"example_quotes\\\": [\\\"actual quotes that capture their voice\\\"],\\n  \\\"demographic_insights\\\": [\\\"age/location/lifestyle patterns observed\\\"]\\n}\"\n    }\n  ],\n  \"temperature\": 0.3\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        -340
+      ],
+      "id": "26e250a9-f01e-4780-894e-f69f61254b1a",
+      "name": "Perplexity_Social_Enrichment",
+      "credentials": {
+        "perplexityApi": {
+          "id": "6pbIV0XznHulKm30",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e11d0688-a06d-4871-be60-f2c2a2d6f382",
+              "name": "social_insights",
+              "value": "={{$json}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        -340
+      ],
+      "id": "cac855f4-7395-4096-8cd8-109be49a9a68",
+      "name": "Set_Social"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get JSON fields from Preserve Webhook\nconst jsonData = items[0].json;\nconst binaryData = items[0].binary || {};\nconst creatives = jsonData.creatives || [];\n\n// Attach base64-encoded images to creatives\ncreatives.forEach((creative, index) => {\n  // Expect binary keys like image_0, image_1 matching creative order\n  const imageKey = `image_${index}`;\n  if (binaryData[imageKey]) {\n    const file = binaryData[imageKey];\n    creative.image_base64 = `data:${file.mimeType};base64,${file.data}`;\n  }\n});\n\n// Output updated JSON for Merge\nreturn [{\n  json: {\n    ...jsonData,\n    creatives\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -340
+      ],
+      "id": "9696995f-b012-46ac-abbb-665ece429729",
+      "name": "Convert Ad Images"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "MeFTqgZVFPZozmyj",
+          "mode": "list",
+          "cachedResultName": "Personal Simulation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        -100
+      ],
+      "id": "7a715be9-04c2-4687-8ad5-cd3a0f050d7f",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate all required data is present\nconst data = items[0].json;\n\n// Check required fields\nconst requiredFields = ['matter', 'target_description', 'keywords'];\nconst missing = requiredFields.filter(field => !data[field] || data[field].trim() === '');\n\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\n// Validate at least one data source\nconst dataSources = ['mri_data', 'targetsmart_data', 'client_data', 'social_insights'];\nconst hasData = dataSources.some(source => data[source] && data[source] !== 'No data provided');\n\nif (!hasData) {\n  console.warn('Warning: No audience data sources available. Personas will be based solely on campaign description.');\n}\n\n// Validate creatives if provided\nif (data.creatives && !Array.isArray(data.creatives)) {\n  data.creatives = [];\n  console.warn('Invalid creatives format, setting to empty array');\n}\n\n// Add validation metadata\ndata.validation = {\n  timestamp: new Date().toISOString(),\n  required_fields_present: missing.length === 0,\n  data_sources_available: hasData,\n  creative_count: (data.creatives || []).length\n};\n\nreturn [{ json: data }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        -100
+      ],
+      "id": "b005fe10-9cdc-411b-98bf-f90469804ce0",
+      "name": "Data_Validation"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "client_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        100,
+        160
+      ],
+      "id": "b9ec3bd9-1f29-447a-9d3a-496837a51c55",
+      "name": "Client_Extract"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "mri_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        100,
+        -20
+      ],
+      "id": "96718ef5-a540-48bf-ae69-2ee54ab8b13e",
+      "name": "MRI_Extract"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "targetsmart_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -180
+      ],
+      "id": "d083bd3e-2008-4960-a692-9df8a01d0ccb",
+      "name": "TargetSmart_Extract"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Split_Files code that handles both binary and JSON locations\nconsole.log('=== ENHANCED SPLIT FILES ===');\n\nconst files = [];\nconst fileFields = ['mri_file', 'targetsmart_file', 'client_file'];\n\n// Debug logging to understand data structure\nconsole.log('Binary data type:', typeof $binary);\nconsole.log('Binary exists:', !!$binary);\nconsole.log('Binary keys:', Object.keys($binary || {}));\nconsole.log('JSON body keys:', Object.keys($json?.body || {}));\n\nfileFields.forEach(fieldName => {\n  let file = null;\n  let source = '';\n  \n  // Check binary first (correct location)\n  if ($binary && $binary[fieldName]) {\n    file = $binary[fieldName];\n    source = 'binary';\n  }\n  // Fallback: check JSON body (current incorrect location)\n  else if ($json?.body?.[fieldName]) {\n    file = $json.body[fieldName];\n    source = 'json.body';\n  }\n  \n  if (file) {\n    let fileType = fieldName.replace('_file', '');\n    \n    files.push({\n      json: { \n        fileType,\n        fileName: file.fileName || fieldName,\n        originalKey: fieldName,\n        source: source  // Track where file was found\n      },\n      binary: { \n        [fieldName]: file\n      }\n    });\n    \n    console.log(`Found ${fileType} in ${source}: ${file.fileName || fieldName}`);\n  } else {\n    console.log(`No ${fieldName} found in binary or json.body`);\n  }\n});\n\nconsole.log(`Returning ${files.length} files`);\nreturn files.length > 0 ? files : [{ json: { noFiles: true, debug: { binary_keys: Object.keys($binary || {}), body_keys: Object.keys($json?.body || {}) } } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        40
+      ],
+      "id": "87b2e91c-f5d4-48a3-a8a6-f4908aa30c5d",
+      "name": "Split_File"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "swheatman.app.n8n.cloud",
+            "user-agent": "node-fetch",
+            "content-length": "1768",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "3.84.246.90",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "9630daf9f3af083e-IAD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "multipart/form-data; boundary=--------------------------00110b47e25b13dcbc0bf82a",
+            "x-forwarded-for": "3.84.246.90, 172.70.38.8",
+            "x-forwarded-host": "swheatman.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-17-7798f56955-lhlwv",
+            "x-is-trusted": "yes",
+            "x-real-ip": "3.84.246.90",
+            "x-vercel-id": "iad1::vflcd-1753165469483-93095b1b20c0"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "matter": "UPF",
+            "target_description": "Low-income Black, Native American, and Hispanic families with teenagers who developed type 2 diabetes. Households earning under $40,000 annually, often single-parent families living in food deserts with limited access to fresh, healthy foods. These communities face disproportionately high rates of teen diabetes and have been specifically targeted by ultra-processed food marketing. Many rely on SNAP benefits and shop at convenience stores or discount retailers in their neighborhoods. Parents work multiple jobs or shifts, leading to reliance on quick, processed meals. Limited transportation to grocery stores with fresh produce. Families have been purchasing heavily marketed processed foods that were affordable, convenient, and aggressively promoted in their communities, contributing to their teen's diabetes diagnosis.",
+            "keywords": "ultra-processed foods, teen diabetes, type 2 diabetes, processed snacks, food companies, SNAP benefits, food desert, childhood obesity, teen health, diabetes lawsuit, food industry, unhealthy food marketing",
+            "persona_count": "10",
+            "email": "swheatman@gmail.com",
+            "creatives": "[]"
+          },
+          "webhookUrl": "https://swheatman.app.n8n.cloud/webhook/focus-group-trigger",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Perplexity_Social_Enrichment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preserve_Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split_File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "TargetSmart_Extract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MRI_Extract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client_Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve_Webhook": {
+      "main": [
+        [
+          {
+            "node": "Convert Ad Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_TargetSmart": {
+      "main": [
+        [
+          {
+            "node": "Merge_All_Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Set_MRI": {
+      "main": [
+        [
+          {
+            "node": "Merge_All_Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Set_Client": {
+      "main": [
+        [
+          {
+            "node": "Merge_All_Data",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge_All_Data": {
+      "main": [
+        [
+          {
+            "node": "Data_Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity_Social_Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Set_Social",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_Social": {
+      "main": [
+        [
+          {
+            "node": "Merge_All_Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Convert Ad Images": {
+      "main": [
+        [
+          {
+            "node": "Merge_All_Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data_Validation": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client_Extract": {
+      "main": [
+        [
+          {
+            "node": "Set_Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MRI_Extract": {
+      "main": [
+        [
+          {
+            "node": "Set_MRI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TargetSmart_Extract": {
+      "main": [
+        [
+          {
+            "node": "Set_TargetSmart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split_File": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "22440b8a-bfc4-4f58-85ef-a1f932dda292",
+  "meta": {
+    "instanceId": "c7b2f786ae0e7cde479b0af785d9ffad172aaa8970d6b639dbec57667f8eaacf"
+  },
+  "id": "QrTk9ybJ7WQubIig",
+  "tags": []
+}
