@@ -1216,5 +1216,39 @@
             console.log('Update CONFIG object with your n8n webhook URLs');
         });
     </script>
+    <!-- Vercel Blob Large File Upload -->
+<script type="module">
+  import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob/+esm";
+
+  // Target your existing MRI file input OR any specific input you want
+  const mriInput = document.getElementById("mri_file");
+  const statusArea = document.createElement("p");
+  statusArea.style.fontSize = "0.85rem";
+  statusArea.style.marginTop = "8px";
+  mriInput.closest(".form-group").appendChild(statusArea);
+
+  mriInput.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    statusArea.textContent = "Starting upload...";
+
+    try {
+      const { url } = await upload(file.name, file, {
+        access: "public",
+        multipart: true, // required for large files
+        handleUploadUrl: "/api/upload", // API route to generate signed token
+        onUploadProgress: ({ percentage }) => {
+          statusArea.textContent = `Uploading: ${percentage.toFixed(0)}%`;
+        },
+      });
+
+      statusArea.innerHTML = `✅ Uploaded: <a href="${url}" target="_blank">${url}</a>`;
+    } catch (err) {
+      statusArea.textContent = "❌ Upload failed: " + err.message;
+    }
+  });
+</script>
+
 </body>
 </html>
