@@ -548,6 +548,9 @@
                                 <div class="upload-text">Click to browse or drag MRI file here</div>
                                 <div class="upload-subtext">Excel files only, up to 10MB</div>
                                 <input type="file" id="mri_file" name="mri_file" class="file-input" accept=".xlsx,.xls">
+                                <input type="hidden" id="mri_file_url" name="mri_file_url">
+<span id="mriStatus"></span>
+
                             </div>
                             <div class="uploaded-files" id="mriFiles"></div>
 
@@ -555,6 +558,9 @@
                                 <div class="upload-text">Click to browse or drag TargetSmart file here</div>
                                 <div class="upload-subtext">Excel files only, up to 10MB</div>
                                 <input type="file" id="targetsmart_file" name="targetsmart_file" class="file-input" accept=".xlsx,.xls">
+<input type="hidden" id="targetsmart_file_url" name="targetsmart_file_url">
+<span id="targetsmartStatus"></span>
+
                             </div>
                             <div class="uploaded-files" id="targetsmartFiles"></div>
 
@@ -562,6 +568,9 @@
                                 <div class="upload-text">Click to browse or drag Client data file here</div>
                                 <div class="upload-subtext">Excel files only, up to 10MB</div>
                                 <input type="file" id="client_file" name="client_file" class="file-input" accept=".xlsx,.xls">
+                                <input type="hidden" id="client_file_url" name="client_file_url">
+<span id="clientStatus"></span>
+
                             </div>
                             <div class="uploaded-files" id="clientFiles"></div>
                             <input type="hidden" id="mri_file_url" name="mri_file_url">
@@ -852,21 +861,13 @@
             formData.append('creatives', JSON.stringify(creatives));
             
             const mriUrl = document.getElementById('mri_file_url').value;
-if (mriUrl) {
-    formData.append('mri_file_url', mriUrl);
-} else {
-    const mriInput = document.getElementById('mri_file');
-    if (mriInput.files.length > 0) {
-        formData.append('mri_file', mriInput.files[0]);
-    }
-}
-['targetsmart_file', 'client_file'].forEach(fieldName => {
-    const fileInput = document.getElementById(fieldName);
-    if (fileInput.files.length > 0) {
-        formData.append(fieldName, fileInput.files[0]);
-    }
-});
+if (mriUrl) formData.append('mri_file_url', mriUrl);
 
+const targetsmartUrl = document.getElementById('targetsmart_file_url').value;
+if (targetsmartUrl) formData.append('targetsmart_file_url', targetsmartUrl);
+
+const clientUrl = document.getElementById('client_file_url').value;
+if (clientUrl) formData.append('client_file_url', clientUrl);
             
             // Add image files with proper field names for n8n
             const imageInput = document.getElementById('creative_images');
@@ -1227,40 +1228,37 @@ if (mriUrl) {
             console.log('Update CONFIG object with your n8n webhook URLs');
         });
     </script>
-    <!-- Vercel Blob Large File Upload -->
-<script type="module">
-  import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob/+esm";
+    <script type="module">
+import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob/+esm";
 
-  // Target your existing MRI file input OR any specific input you want
-  const mriInput = document.getElementById("mri_file");
-  const statusArea = document.createElement("p");
-  statusArea.style.fontSize = "0.85rem";
-  statusArea.style.marginTop = "8px";
-  mriInput.closest(".form-group").appendChild(statusArea);
-
-  mriInput.addEventListener("change", async (e) => {
+const setupBlobUpload = (inputId, statusId, hiddenId) => {
+  const input = document.getElementById(inputId);
+  const status = document.getElementById(statusId);
+  input.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    statusArea.textContent = "Starting upload...";
-
+    status.textContent = "Uploading...";
     try {
       const { url } = await upload(file.name, file, {
         access: "public",
-        multipart: true, // required for large files
-        handleUploadUrl: "/api/upload", // API route to generate signed token
+        multipart: true,
         onUploadProgress: ({ percentage }) => {
-          statusArea.textContent = `Uploading: ${percentage.toFixed(0)}%`;
+          status.textContent = `Uploading: ${percentage.toFixed(0)}%`;
         },
       });
-
-      statusArea.innerHTML = `✅ Uploaded: <a href="${url}" target="_blank">${url}</a>`;
-        document.getElementById('mri_file_url').value = url;
+      status.innerHTML = `✅ Uploaded!`;
+      document.getElementById(hiddenId).value = url;
     } catch (err) {
-      statusArea.textContent = "❌ Upload failed: " + err.message;
+      status.textContent = "Failed: " + err.message;
     }
   });
+};
+
+setupBlobUpload("mri_file", "mriStatus", "mri_file_url");
+setupBlobUpload("targetsmart_file", "targetsmartStatus", "targetsmart_file_url");
+setupBlobUpload("client_file", "clientStatus", "client_file_url");
 </script>
+
 
 </body>
 </html>
