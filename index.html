@@ -564,6 +564,8 @@
                                 <input type="file" id="client_file" name="client_file" class="file-input" accept=".xlsx,.xls">
                             </div>
                             <div class="uploaded-files" id="clientFiles"></div>
+                            <input type="hidden" id="mri_file_url" name="mri_file_url">
+
                         </div>
 
                         <div class="form-group">
@@ -849,13 +851,22 @@
             const creatives = parseCreativesText(creativesText);
             formData.append('creatives', JSON.stringify(creatives));
             
-            const dataFiles = ['mri_file', 'targetsmart_file', 'client_file'];
-            dataFiles.forEach(fieldName => {
-                const fileInput = document.getElementById(fieldName);
-                if (fileInput.files.length > 0) {
-                    formData.append(fieldName, fileInput.files[0]);
-                }
-            });
+            const mriUrl = document.getElementById('mri_file_url').value;
+if (mriUrl) {
+    formData.append('mri_file_url', mriUrl);
+} else {
+    const mriInput = document.getElementById('mri_file');
+    if (mriInput.files.length > 0) {
+        formData.append('mri_file', mriInput.files[0]);
+    }
+}
+['targetsmart_file', 'client_file'].forEach(fieldName => {
+    const fileInput = document.getElementById(fieldName);
+    if (fileInput.files.length > 0) {
+        formData.append(fieldName, fileInput.files[0]);
+    }
+});
+
             
             // Add image files with proper field names for n8n
             const imageInput = document.getElementById('creative_images');
@@ -1244,6 +1255,7 @@
       });
 
       statusArea.innerHTML = `✅ Uploaded: <a href="${url}" target="_blank">${url}</a>`;
+        document.getElementById('mri_file_url').value = url;
     } catch (err) {
       statusArea.textContent = "❌ Upload failed: " + err.message;
     }
