@@ -1228,7 +1228,7 @@ if (clientUrl) formData.append('client_file_url', clientUrl);
             console.log('Update CONFIG object with your n8n webhook URLs');
         });
     </script>
-    <script type="module">
+ <script type="module">
 import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob/+esm";
 
 const setupBlobUpload = (inputId, statusId, hiddenId) => {
@@ -1242,6 +1242,7 @@ const setupBlobUpload = (inputId, statusId, hiddenId) => {
       const { url } = await upload(file.name, file, {
         access: "public",
         multipart: true,
+        handleUploadUrl: "/api/upload", // CRITICAL FOR IT TO WORK!
         onUploadProgress: ({ percentage }) => {
           status.textContent = `Uploading: ${percentage.toFixed(0)}%`;
         },
@@ -1258,6 +1259,7 @@ setupBlobUpload("mri_file", "mriStatus", "mri_file_url");
 setupBlobUpload("targetsmart_file", "targetsmartStatus", "targetsmart_file_url");
 setupBlobUpload("client_file", "clientStatus", "client_file_url");
 </script>
+
 
 
 </body>
