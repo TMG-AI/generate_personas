@@ -1227,38 +1227,63 @@ if (clientUrl) formData.append('client_file_url', clientUrl);
             console.log('Signal Digital Twin Platform loaded');
         });
     </script>
- <script type="module">
-import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob/+esm";
+ <!-- Replace your blob upload script in index.html with this: -->
 
-const setupBlobUpload = (inputId, statusId, hiddenId) => {
+<script type="module">
+// Simple file upload that works with your API upload endpoint
+const setupFileUpload = (inputId, statusId, hiddenId) => {
   const input = document.getElementById(inputId);
   const status = document.getElementById(statusId);
+  
   input.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      status.textContent = "";
+      document.getElementById(hiddenId).value = "";
+      return;
+    }
+
+    // Show upload starting
     status.textContent = "Uploading...";
+    
     try {
-      const { url } = await upload(file.name, file, {
-        access: "public",
-        multipart: true,
-        handleUploadUrl: "/api/upload", // CRITICAL FOR IT TO WORK!
-        onUploadProgress: ({ percentage }) => {
-          status.textContent = `Uploading: ${percentage.toFixed(0)}%`;
-        },
+      // Create FormData for the upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload to your API
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
       });
-      status.innerHTML = `✅ Uploaded!`;
-      document.getElementById(hiddenId).value = url;
-    } catch (err) {
-      status.textContent = "Failed: " + err.message;
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Success!
+      status.innerHTML = `✅ Uploaded: ${file.name}`;
+      document.getElementById(hiddenId).value = result.url;
+      
+      console.log('✅ File uploaded:', result.url);
+      
+    } catch (error) {
+      console.error('❌ Upload failed:', error);
+      status.textContent = `❌ Failed: ${error.message}`;
+      document.getElementById(hiddenId).value = "";
     }
   });
 };
 
-setupBlobUpload("mri_file", "mriStatus", "mri_file_url");
-setupBlobUpload("targetsmart_file", "targetsmartStatus", "targetsmart_file_url");
-setupBlobUpload("client_file", "clientStatus", "client_file_url");
-</script>
+// Set up all three file uploads
+setupFileUpload("mri_file", "mriStatus", "mri_file_url");
+setupFileUpload("targetsmart_file", "targetsmartStatus", "targetsmart_file_url");
+setupFileUpload("client_file", "clientStatus", "client_file_url");
 
+console.log('Signal Digital Twin Platform loaded');
+</script>
 <script>
 console.log("TEST: script loaded and runs!");
 </script>
