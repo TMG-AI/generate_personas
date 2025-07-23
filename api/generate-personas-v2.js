@@ -1,9 +1,16 @@
 // ========================
-// api/generate-personas.js
+// api/generate-personas-v2.js
 // ========================
 import Busboy from 'busboy';
-import FormData from 'form-data';
-import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
+
+// Import your AI agents (we'll need to adapt these for Vercel)
+import { processFiles } from '../lib/documentAgent.js';
+import { conductResearch } from '../lib/researchAgent.js';
+import { generatePersonas } from '../lib/personaAgent.js';
+import { validatePersonas } from '../lib/validationAgent.js';
+import { storePersonas } from '../lib/sheetsService.js';
+import { generateReport } from '../lib/reportAgent.js';
 
 export const config = {
   api: {
@@ -13,7 +20,7 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  console.log('🚀 Persona Generation API called - Method:', req.method);
+  console.log('🚀 Multi-AI Persona Generation API called - Method:', req.method);
   
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,6 +37,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const sessionId = uuidv4();
+  console.log('🔑 Session ID:', sessionId);
+
   try {
     console.log('📋 Setting up busboy for persona generation...');
     
@@ -44,7 +54,7 @@ export default async function handler(req, res) {
     const files = {};
     const fields = {};
 
-    // Handle file uploads
+    // Handle file uploads (keep your existing logic)
     busboy.on('file', (fieldname, file, info) => {
       console.log('📄 File detected:', fieldname, info.filename);
       
@@ -58,13 +68,14 @@ export default async function handler(req, res) {
         files[fieldname] = {
           buffer: Buffer.concat(chunks),
           filename: info.filename || `${fieldname}.csv`,
-          contentType: info.mimeType || 'text/csv'
+          contentType: info.mimeType || 'text/csv',
+          path: `/tmp/${fieldname}-${Date.now()}`, // Vercel temp path
         };
         console.log('✅ File collected:', fieldname, files[fieldname].filename);
       });
     });
 
-    // Handle form fields
+    // Handle form fields (keep your existing logic)
     busboy.on('field', (fieldname, value) => {
       fields[fieldname] = value;
       console.log('📝 Field collected:', fieldname);
@@ -94,84 +105,167 @@ export default async function handler(req, res) {
     // Wait for upload to complete
     await uploadPromise;
 
-    console.log('📦 Creating FormData for n8n webhook...');
+    // ====================================
+    // NEW: Multi-AI Processing Pipeline
+    // ====================================
     
-    // Create form data to send to n8n webhook
-    const formData = new FormData();
-    
-    // Add all form fields
-    Object.keys(fields).forEach(key => {
-      formData.append(key, fields[key]);
-    });
-    
-    // Add all files
-    Object.keys(files).forEach(fieldname => {
-      const file = files[fieldname];
-      formData.append(fieldname, file.buffer, {
-        filename: file.filename,
-        contentType: file.contentType
-      });
-    });
+    console.log('🤖 Starting Multi-AI Processing Pipeline...');
 
-    console.log('🌐 Sending to n8n webhook...');
-    console.log('📊 Form fields:', Object.keys(fields));
-    console.log('📁 Files:', Object.keys(files));
+    // Extract campaign data
+    const campaignData = {
+      matter: fields.matter,
+      keywords: fields.keywords,
+      target_description: fields.target_description,
+      persona_count: parseInt(fields.persona_count || '10'),
+      email: fields.email,
+      session_id: sessionId
+    };
 
-    // REPLACE THESE WITH YOUR ACTUAL N8N WEBHOOK URLS
-    const generatePersonasWebhookUrl = process.env.N8N_GENERATE_PERSONAS_WEBHOOK || 'https://swheatman.app.n8n.cloud/webhook/focus-group-trigger';
-    
-    const webhookResponse = await fetch(generatePersonasWebhookUrl, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        ...formData.getHeaders(),
-      },
-    });
-
-    console.log('📊 N8N Webhook response:', webhookResponse.status, webhookResponse.statusText);
-
-    if (!webhookResponse.ok) {
-      const errorText = await webhookResponse.text();
-      console.error('❌ N8N Webhook failed:', webhookResponse.status, errorText);
-      return res.status(500).json({ 
-        error: 'Persona generation failed', 
-        details: errorText,
-        status: webhookResponse.status 
+    // Validate required fields
+    if (!campaignData.matter || !campaignData.keywords || !campaignData.target_description) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['matter', 'keywords', 'target_description']
       });
     }
 
-    // Get the response from n8n
-    const responseText = await webhookResponse.text();
-    console.log('📥 N8N response received, length:', responseText.length);
+    console.log('📊 Campaign Data:', campaignData);
 
-    // N8N might return JSON or just a success message
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-      console.log('✅ JSON parsed successfully');
-    } catch (parseError) {
-      // If not JSON, treat as success message
-      responseData = { 
-        success: true, 
-        message: responseText || 'Persona generation started successfully' 
-      };
-      console.log('✅ Non-JSON response treated as success');
-    }
-
-    console.log('✅ Success! Persona generation initiated');
-    
-    return res.status(200).json({
+    // Send immediate response
+    res.status(202).json({
       success: true,
-      message: 'Digital twins generation started successfully! You will receive the report via email.',
-      data: responseData
+      message: 'Multi-AI persona generation started! Processing with 7 specialized agents.',
+      session_id: sessionId,
+      estimated_time: '3-5 minutes',
+      pipeline: [
+        'Document Processing Agent',
+        'Research Agent (Perplexity)',
+        'RAG Vector Search',
+        'Persona Generation Agent (Claude)',
+        'Validation Agent (GPT-4)', 
+        'Google Sheets Storage',
+        'Report Generation'
+      ]
+    });
+
+    // Continue processing in background
+    processPersonaGeneration(campaignData, files, sessionId);
+
+  } catch (error) {
+    console.error('💥 Setup error:', error.message);
+    console.error('💥 Error stack:', error.stack);
+    return res.status(500).json({ 
+      error: 'Setup failed',
+      message: error.message,
+      session_id: sessionId
+    });
+  }
+}
+
+/**
+ * Background processing function with all 7 AI agents
+ */
+async function processPersonaGeneration(campaignData, files, sessionId) {
+  const startTime = Date.now();
+  console.log(`🔄 [${sessionId}] Background processing started`);
+
+  try {
+    // Step 1: Document Processing Agent
+    console.log(`📄 [${sessionId}] Step 1: Processing uploaded files`);
+    const uploadedData = await processFiles(files);
+    console.log(`✅ [${sessionId}] Document processing complete`);
+
+    // Step 2: Research Agent (Perplexity)
+    console.log(`🔍 [${sessionId}] Step 2: Conducting external research`);
+    const researchData = await conductResearch(
+      campaignData.matter,
+      campaignData.keywords, 
+      campaignData.target_description
+    );
+    console.log(`✅ [${sessionId}] Research complete`);
+
+    // Step 3: Persona Generation Agent (Claude with RAG)
+    console.log(`🧠 [${sessionId}] Step 3: Generating personas with Claude + RAG`);
+    const personaResult = await generatePersonas(
+      campaignData,
+      uploadedData,
+      researchData
+    );
+    console.log(`✅ [${sessionId}] Generated ${personaResult.personas.length} personas`);
+
+    // Step 4: Validation Agent (GPT-4)
+    console.log(`✔️ [${sessionId}] Step 4: Validating with GPT-4`);
+    const validation = await validatePersonas(
+      personaResult.personas,
+      uploadedData,
+      researchData
+    );
+    console.log(`✅ [${sessionId}] Validation complete: ${validation.validated.length} validated`);
+
+    // Step 5: Google Sheets Storage
+    console.log(`📊 [${sessionId}] Step 5: Storing in Google Sheets`);
+    const storageResult = await storePersonas(
+      validation.validated,
+      campaignData
+    );
+    console.log(`✅ [${sessionId}] Stored in Google Sheets`);
+
+    // Step 6: Report Generation
+    console.log(`📋 [${sessionId}] Step 6: Generating HTML report`);
+    const report = await generateReport({
+      personas: validation.validated,
+      campaign_data: campaignData,
+      research_data: researchData,
+      validation_details: validation,
+      session_id: sessionId
+    });
+    console.log(`✅ [${sessionId}] Report generated`);
+
+    // Step 7: Email Report (if email provided)
+    if (campaignData.email) {
+      console.log(`📧 [${sessionId}] Step 7: Emailing report`);
+      try {
+        await emailReport(campaignData.email, report, campaignData);
+        console.log(`✅ [${sessionId}] Report emailed successfully`);
+      } catch (emailError) {
+        console.error(`❌ [${sessionId}] Email failed:`, emailError.message);
+      }
+    }
+
+    const processingTime = Date.now() - startTime;
+    console.log(`🎉 [${sessionId}] Processing complete in ${processingTime}ms`);
+
+    // Store results for status checking
+    await storeSessionResults(sessionId, {
+      success: true,
+      personas: validation.validated,
+      report: report,
+      processing_time: processingTime,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('💥 Caught error:', error.message);
-    console.error('💥 Error stack:', error.stack);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message
+    const processingTime = Date.now() - startTime;
+    console.error(`💥 [${sessionId}] Processing failed:`, error.message);
+
+    // Store error results
+    await storeSessionResults(sessionId, {
+      success: false,
+      error: error.message,
+      processing_time: processingTime,
+      timestamp: new Date().toISOString()
     });
   }
+}
+
+/**
+ * Store session results (implement based on your preferred storage)
+ */
+async function storeSessionResults(sessionId, results) {
+  // You can implement this to store in a database, file system, or just log
+  console.log(`💾 [${sessionId}] Results stored:`, {
+    success: results.success,
+    personas: results.personas?.length || 0,
+    error: results.error || null
+  });
 }
