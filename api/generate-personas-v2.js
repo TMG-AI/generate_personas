@@ -1,16 +1,17 @@
-// api/generate-personas-v2.js
-// Handles both direct files AND blob URLs from large file uploads
+// api/generate-personas-v2.js (Enhanced with Detailed Debugging)
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb', // For form data, large files use blob URLs
+      sizeLimit: '10mb',
     },
-    maxDuration: 300
+    maxDuration: 780 // 13 minutes for Vercel Pro
   }
 };
 
 export default async function handler(req, res) {
+  const sessionId = Math.random().toString(36).substring(2, 8);
+  
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -25,7 +26,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🚀 Persona generation started');
+    console.log(`🚀 [${sessionId}] === PERSONA GENERATION STARTED ===`);
+    console.log(`📝 [${sessionId}] REQUEST DETAILS:`);
+    console.log(`   - Method: ${req.method}`);
+    console.log(`   - Headers: ${JSON.stringify(req.headers, null, 2)}`);
+    console.log(`   - Body keys: ${Object.keys(req.body || {}).join(', ')}`);
     
     const { 
       matter, 
@@ -34,115 +39,259 @@ export default async function handler(req, res) {
       persona_count,
       mri_file_url,
       targetsmart_file_url, 
-      client_file_url 
+      client_file_url,
+      complaint_file_url,
+      research_file_url
     } = req.body;
     
-    console.log('📝 Form data received:', { 
-      matter, 
-      keywords, 
-      target_description,
-      fileUrls: {
-        mri: mri_file_url ? 'provided' : 'none',
-        targetsmart: targetsmart_file_url ? 'provided' : 'none', 
-        client: client_file_url ? 'provided' : 'none'
-      }
-    });
+    console.log(`📋 [${sessionId}] FORM DATA RECEIVED:`);
+    console.log(`   - Matter: ${matter}`);
+    console.log(`   - Keywords: ${keywords}`);
+    console.log(`   - Target: ${target_description}`);
+    console.log(`   - Persona count: ${persona_count}`);
+    
+    console.log(`📎 [${sessionId}] FILE URLS RECEIVED:`);
+    console.log(`   - MRI: ${mri_file_url ? '✅ ' + mri_file_url.substring(0, 50) + '...' : '❌ none'}`);
+    console.log(`   - TargetSmart: ${targetsmart_file_url ? '✅ ' + targetsmart_file_url.substring(0, 50) + '...' : '❌ none'}`);
+    console.log(`   - Client: ${client_file_url ? '✅ ' + client_file_url.substring(0, 50) + '...' : '❌ none'}`);
+    console.log(`   - Complaint: ${complaint_file_url ? '✅ ' + complaint_file_url.substring(0, 50) + '...' : '❌ none'}`);
+    console.log(`   - Research: ${research_file_url ? '✅ ' + research_file_url.substring(0, 50) + '...' : '❌ none'}`);
+    
+    // Count total files
+    const fileUrls = [mri_file_url, targetsmart_file_url, client_file_url, complaint_file_url, research_file_url].filter(Boolean);
+    console.log(`📊 [${sessionId}] TOTAL FILES TO PROCESS: ${fileUrls.length}`);
     
     // Basic validation
     if (!matter || !keywords || !target_description) {
-      console.log('❌ Missing required fields');
+      console.log(`❌ [${sessionId}] VALIDATION FAILED: Missing required fields`);
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'Matter, keywords, and target description are required'
       });
     }
     
-    console.log('✅ Validation passed');
+    console.log(`✅ [${sessionId}] VALIDATION PASSED`);
+
+    // STEP 1: Process uploaded files
+    console.log(`📁 [${sessionId}] === STEP 1: PROCESSING UPLOADED FILES ===`);
+    let uploadedData = [];
     
-    // Process blob URLs if provided
-    const fileData = [];
-    
-    if (mri_file_url) {
-      console.log('📁 Processing MRI file from blob URL');
-      const fileContent = await downloadBlobFile(mri_file_url);
-      fileData.push({ type: 'mri', content: fileContent, url: mri_file_url });
+    if (fileUrls.length > 0) {
+      try {
+        console.log(`📥 [${sessionId}] Importing document agent...`);
+        const { default: DocumentAgent } = await import('../lib/documentAgent.js');
+        console.log(`✅ [${sessionId}] Document agent imported successfully`);
+        
+        // Create file objects from URLs
+        const fileObjects = [];
+        
+        if (mri_file_url) {
+          console.log(`📄 [${sessionId}] Processing MRI file: ${mri_file_url}`);
+          try {
+            const response = await fetch(mri_file_url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const buffer = await response.arrayBuffer();
+            fileObjects.push({
+              filename: 'MRI_Data.xlsx',
+              mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              buffer: Buffer.from(buffer)
+            });
+            console.log(`✅ [${sessionId}] MRI file downloaded: ${buffer.byteLength} bytes`);
+          } catch (error) {
+            console.log(`❌ [${sessionId}] MRI file download failed: ${error.message}`);
+          }
+        }
+        
+        if (targetsmart_file_url) {
+          console.log(`📄 [${sessionId}] Processing TargetSmart file: ${targetsmart_file_url}`);
+          try {
+            const response = await fetch(targetsmart_file_url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const buffer = await response.arrayBuffer();
+            fileObjects.push({
+              filename: 'TargetSmart_Data.xlsx',
+              mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              buffer: Buffer.from(buffer)
+            });
+            console.log(`✅ [${sessionId}] TargetSmart file downloaded: ${buffer.byteLength} bytes`);
+          } catch (error) {
+            console.log(`❌ [${sessionId}] TargetSmart file download failed: ${error.message}`);
+          }
+        }
+        
+        if (client_file_url) {
+          console.log(`📄 [${sessionId}] Processing Client file: ${client_file_url}`);
+          try {
+            const response = await fetch(client_file_url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const buffer = await response.arrayBuffer();
+            fileObjects.push({
+              filename: 'Client_Data.xlsx',
+              mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              buffer: Buffer.from(buffer)
+            });
+            console.log(`✅ [${sessionId}] Client file downloaded: ${buffer.byteLength} bytes`);
+          } catch (error) {
+            console.log(`❌ [${sessionId}] Client file download failed: ${error.message}`);
+          }
+        }
+        
+        if (complaint_file_url) {
+          console.log(`📄 [${sessionId}] Processing Complaint file: ${complaint_file_url}`);
+          try {
+            const response = await fetch(complaint_file_url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const buffer = await response.arrayBuffer();
+            fileObjects.push({
+              filename: 'Complaint.pdf',
+              mimeType: 'application/pdf',
+              buffer: Buffer.from(buffer)
+            });
+            console.log(`✅ [${sessionId}] Complaint file downloaded: ${buffer.byteLength} bytes`);
+          } catch (error) {
+            console.log(`❌ [${sessionId}] Complaint file download failed: ${error.message}`);
+          }
+        }
+        
+        if (research_file_url) {
+          console.log(`📄 [${sessionId}] Processing Research file: ${research_file_url}`);
+          try {
+            const response = await fetch(research_file_url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const buffer = await response.arrayBuffer();
+            fileObjects.push({
+              filename: 'Research.pdf',
+              mimeType: 'application/pdf',
+              buffer: Buffer.from(buffer)
+            });
+            console.log(`✅ [${sessionId}] Research file downloaded: ${buffer.byteLength} bytes`);
+          } catch (error) {
+            console.log(`❌ [${sessionId}] Research file download failed: ${error.message}`);
+          }
+        }
+        
+        console.log(`📊 [${sessionId}] FILES READY FOR PROCESSING: ${fileObjects.length}`);
+        
+        if (fileObjects.length > 0) {
+          console.log(`🔄 [${sessionId}] Calling DocumentAgent.processFiles()...`);
+          uploadedData = await DocumentAgent.processFiles(fileObjects);
+          console.log(`✅ [${sessionId}] Document processing complete: ${uploadedData.length} processed`);
+          
+          // Log each processed file
+          uploadedData.forEach((data, i) => {
+            console.log(`📋 [${sessionId}] File ${i+1}: ${data.filename} (${data.type}) - ${data.content?.length || 0} chars`);
+            if (data.insights) {
+              console.log(`   📊 Insights: ${Object.keys(data.insights).join(', ')}`);
+            }
+          });
+        } else {
+          console.log(`⚠️ [${sessionId}] No files could be downloaded for processing`);
+        }
+        
+      } catch (error) {
+        console.log(`❌ [${sessionId}] Document processing error: ${error.message}`);
+        console.log(`🔍 [${sessionId}] Error stack: ${error.stack}`);
+      }
+    } else {
+      console.log(`ℹ️ [${sessionId}] No files uploaded - proceeding with research data only`);
     }
+
+    // STEP 2: Research
+    console.log(`🔬 [${sessionId}] === STEP 2: CONDUCTING RESEARCH ===`);
+    let researchData = {};
     
-    if (targetsmart_file_url) {
-      console.log('📁 Processing TargetSmart file from blob URL');
-      const fileContent = await downloadBlobFile(targetsmart_file_url);
-      fileData.push({ type: 'targetsmart', content: fileContent, url: targetsmart_file_url });
+    try {
+      console.log(`📥 [${sessionId}] Importing research agent...`);
+      const { default: ResearchAgent } = await import('../lib/researchAgent.js');
+      console.log(`✅ [${sessionId}] Research agent imported successfully`);
+      
+      console.log(`🔍 [${sessionId}] Starting research for: ${matter} | ${keywords}`);
+      researchData = await ResearchAgent.gatherInsights(matter, keywords, target_description);
+      
+      console.log(`✅ [${sessionId}] Research completed`);
+      console.log(`📊 [${sessionId}] Research categories: ${Object.keys(researchData).join(', ')}`);
+      
+      // Log research data size
+      Object.keys(researchData).forEach(key => {
+        const data = researchData[key];
+        if (Array.isArray(data)) {
+          console.log(`   - ${key}: ${data.length} items`);
+        } else if (typeof data === 'object' && data !== null) {
+          console.log(`   - ${key}: object with ${Object.keys(data).length} keys`);
+        } else {
+          console.log(`   - ${key}: ${typeof data}`);
+        }
+      });
+      
+    } catch (error) {
+      console.log(`❌ [${sessionId}] Research failed: ${error.message}`);
+      console.log(`🔍 [${sessionId}] Error stack: ${error.stack}`);
+      throw error;
     }
+
+    // STEP 3: Generate Personas
+    console.log(`🎭 [${sessionId}] === STEP 3: GENERATING PERSONAS ===`);
     
-    if (client_file_url) {
-      console.log('📁 Processing client file from blob URL');
-      const fileContent = await downloadBlobFile(client_file_url);
-      fileData.push({ type: 'client', content: fileContent, url: client_file_url });
+    try {
+      console.log(`📥 [${sessionId}] Importing persona agent...`);
+      const { default: PersonaAgent } = await import('../lib/personaAgent.js');
+      console.log(`✅ [${sessionId}] Persona agent imported successfully`);
+      
+      console.log(`🔄 [${sessionId}] Calling PersonaAgent.generatePersonas()...`);
+      console.log(`📊 [${sessionId}] Input data summary:`);
+      console.log(`   - Research data: ${Object.keys(researchData).length} categories`);
+      console.log(`   - Uploaded data: ${uploadedData.length} files`);
+      console.log(`   - Persona count: ${persona_count}`);
+      
+      const personaResult = await PersonaAgent.generatePersonas(
+        matter, keywords, target_description, researchData, uploadedData, [], parseInt(persona_count) || 5
+      );
+
+      if (!personaResult.success) {
+        console.log(`❌ [${sessionId}] Persona generation failed: ${personaResult.error}`);
+        console.log(`📋 [${sessionId}] Failure details: ${personaResult.message}`);
+        return res.status(422).json(personaResult);
+      }
+
+      const personas = personaResult.personas;
+      console.log(`✅ [${sessionId}] Persona generation successful: ${personas.length} personas created`);
+      
+      // Log each persona
+      personas.forEach((persona, i) => {
+        console.log(`🎭 [${sessionId}] Persona ${i+1}: ${persona.name} (age ${persona.age}) - confidence: ${persona.confidence_score}`);
+      });
+
+      console.log(`🎉 [${sessionId}] === WORKFLOW COMPLETED SUCCESSFULLY ===`);
+      
+      return res.status(200).json({
+        success: true,
+        sessionId: sessionId,
+        personas: personas,
+        dataAnalysis: {
+          totalDataPoints: personaResult.sourceDataCount,
+          confidence: personaResult.confidence,
+          filesProcessed: uploadedData.length,
+          researchCategories: Object.keys(researchData),
+          hasMediaInsights: personaResult.hasMediaInsights
+        },
+        processingTime: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.log(`❌ [${sessionId}] Persona generation error: ${error.message}`);
+      console.log(`🔍 [${sessionId}] Error stack: ${error.stack}`);
+      throw error;
     }
-    
-    console.log(`📊 Processed ${fileData.length} uploaded files`);
-    
-    // For testing - return success with file info
-    const testPersona = {
-      name: "Test Persona",
-      age: "35-45",
-      location: "Test Location", 
-      demographics: `Demographics for ${matter} case`,
-      pain_points: ["Legal concerns", "Financial stress"],
-      media_consumption: ["Social media", "Local news"],
-      confidence_score: 85,
-      source_citations: fileData.length > 0 ? [`Data from ${fileData.length} uploaded files`] : ["Research data only"]
-    };
-    
-    console.log('✅ Test persona created with blob file support');
-    
-    return res.status(200).json({
-      success: true,
-      message: 'API working with blob file uploads!',
-      personas: [testPersona],
-      formData: {
-        matter,
-        keywords,
-        target_description,
-        persona_count
-      },
-      fileInfo: fileData.map(f => ({
-        type: f.type,
-        url: f.url,
-        contentLength: f.content.length
-      })),
-      timestamp: new Date().toISOString(),
-      note: 'Large files are being processed via blob URLs - AI agents will be added back next'
-    });
 
   } catch (error) {
-    console.error('💥 Error:', error.message);
+    console.error(`💥 [${sessionId}] FATAL ERROR: ${error.message}`);
+    console.error(`📍 [${sessionId}] Stack trace: ${error.stack}`);
     
     return res.status(500).json({
-      error: 'Processing failed',
+      error: 'PROCESSING_FAILED',
       message: error.message,
+      sessionId: sessionId,
       timestamp: new Date().toISOString()
     });
-  }
-}
-
-// Download and process file from blob URL
-async function downloadBlobFile(blobUrl) {
-  try {
-    console.log('⬇️ Downloading file from blob URL:', blobUrl);
-    
-    const response = await fetch(blobUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.status}`);
-    }
-    
-    const content = await response.text();
-    console.log(`✅ Downloaded ${content.length} characters from blob`);
-    
-    return content;
-    
-  } catch (error) {
-    console.error('❌ Blob download failed:', error);
-    throw new Error(`Failed to process uploaded file: ${error.message}`);
   }
 }
