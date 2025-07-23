@@ -1,4 +1,5 @@
-// api/generate-personas-v2.js (Enhanced Error Handling & Logging)
+// api/generate-personas-v2.js (With Status Updates)
+// This version sends status updates back to the user
 
 import Busboy from 'busboy';
 import { v4 as uuidv4 } from 'uuid';
@@ -6,155 +7,186 @@ import { v4 as uuidv4 } from 'uuid';
 export const config = {
   api: {
     bodyParser: false,
-    maxDuration: 300 // 5 minutes for complex processing
+    maxDuration: 300
   }
 };
 
 export default async function handler(req, res) {
   const sessionId = uuidv4().substring(0, 8);
-  console.log(`🚀 [${sessionId}] Multi-AI Persona Generation Started`);
   
-  // Enhanced CORS
+  // Set up Server-Sent Events for real-time updates
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Helper function to send status updates
+  const sendStatus = (status, message, data = {}) => {
+    const statusUpdate = {
+      sessionId,
+      status,
+      message,
+      timestamp: new Date().toISOString(),
+      ...data
+    };
+    
+    // Log for debugging
+    console.log(`[${sessionId}] ${status}: ${message}`);
+    
+    // Send to client (if not already ended)
+    if (!res.headersSent) {
+      try {
+        res.write(`STATUS: ${JSON.stringify(statusUpdate)}\n`);
+      } catch (e) {
+        console.error('Failed to write status:', e);
+      }
+    }
+  };
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    sendStatus('error', 'Method not allowed');
+    return res.status(405).end();
   }
 
   try {
+    sendStatus('started', 'Multi-AI persona generation initiated');
+
     // Step 1: Parse Form Data
-    console.log(`📝 [${sessionId}] Step 1: Parsing form data...`);
+    sendStatus('processing', 'Parsing form data...');
     const formData = await parseMultipartForm(req);
     
     const { matter, keywords, target_description, persona_count } = formData.fields;
     const uploadedFiles = formData.files;
 
-    console.log(`✅ [${sessionId}] Form parsed: ${uploadedFiles.length} files, matter: ${matter}`);
+    sendStatus('success', `Form parsed: ${uploadedFiles.length} files uploaded`, {
+      matter: matter?.substring(0, 50),
+      fileCount: uploadedFiles.length
+    });
 
     // Step 2: Validate Required Data
-    console.log(`🔍 [${sessionId}] Step 2: Validating inputs...`);
+    sendStatus('processing', 'Validating required fields...');
     if (!matter || !keywords || !target_description) {
-      console.log(`❌ [${sessionId}] Missing required fields`);
-      return res.status(400).json({
-        error: 'MISSING_REQUIRED_FIELDS',
-        message: 'Matter, keywords, and target description are required'
-      });
+      sendStatus('error', 'Missing required fields: matter, keywords, or target description');
+      return res.status(400).end();
     }
+    sendStatus('success', 'All required fields validated');
 
     // Step 3: Process Documents
-    console.log(`📄 [${sessionId}] Step 3: Processing ${uploadedFiles.length} documents...`);
+    sendStatus('processing', `Processing ${uploadedFiles.length} documents...`);
     let uploadedData = [];
     
     if (uploadedFiles.length > 0) {
-      const { default: DocumentAgent } = await import('../lib/documentAgent.js');
-      uploadedData = await DocumentAgent.processFiles(uploadedFiles);
-      console.log(`✅ [${sessionId}] Documents processed: ${uploadedData.length} chunks extracted`);
+      try {
+        const { default: DocumentAgent } = await import('../lib/documentAgent.js');
+        uploadedData = await DocumentAgent.processFiles(uploadedFiles);
+        sendStatus('success', `Documents processed: ${uploadedData.length} chunks extracted`);
+      } catch (docError) {
+        sendStatus('warning', `Document processing failed: ${docError.message}`);
+        uploadedData = [];
+      }
     } else {
-      console.log(`⚠️ [${sessionId}] No files uploaded - will rely on research data only`);
+      sendStatus('info', 'No files uploaded - proceeding with research data only');
     }
 
     // Step 4: Research External Data
-    console.log(`🔬 [${sessionId}] Step 4: Gathering research data...`);
-    const { default: ResearchAgent } = await import('../lib/researchAgent.js');
-    const researchData = await ResearchAgent.gatherInsights(matter, keywords, target_description);
+    sendStatus('processing', 'Gathering external research data...');
+    let researchData = {};
     
-    if (!researchData || Object.keys(researchData).length === 0) {
-      console.log(`❌ [${sessionId}] Research failed - no external data gathered`);
-      return res.status(500).json({
-        error: 'RESEARCH_FAILED',
-        message: 'Unable to gather sufficient research data for persona generation'
-      });
-    }
-    
-    console.log(`✅ [${sessionId}] Research completed: ${Object.keys(researchData).length} data categories`);
-
-    // Step 5: Generate Evidence-Based Personas
-    console.log(`🎭 [${sessionId}] Step 5: Generating evidence-based personas...`);
-    const { default: PersonaAgent } = await import('../lib/personaAgent.js');
-    const personaResult = await PersonaAgent.generatePersonas(
-      matter, keywords, target_description, researchData, uploadedData, parseInt(persona_count) || 5
-    );
-
-    // Check if persona generation failed due to insufficient data
-    if (!personaResult.success) {
-      console.log(`❌ [${sessionId}] Persona generation failed: ${personaResult.error}`);
-      return res.status(422).json({
-        error: personaResult.error,
-        message: personaResult.message,
-        recommendations: personaResult.recommendations,
-        dataAnalysis: {
-          dataPointsFound: personaResult.dataPointCount,
-          minimumRequired: personaResult.minimumRequired,
-          researchCategories: Object.keys(researchData),
-          uploadedFiles: uploadedFiles.length
-        }
-      });
-    }
-
-    const personas = personaResult.personas;
-    console.log(`✅ [${sessionId}] Generated ${personas.length} valid personas`);
-
-    // Step 6: Validation (Optional but Recommended)
-    console.log(`✔️ [${sessionId}] Step 6: Validating persona quality...`);
     try {
-      const { default: ValidationAgent } = await import('../lib/validationAgent.js');
-      const validation = await ValidationAgent.validatePersonas(personas, researchData, uploadedData);
-      console.log(`✅ [${sessionId}] Validation complete: ${validation.validPersonas} valid, ${validation.flaggedPersonas} flagged`);
-    } catch (validationError) {
-      console.log(`⚠️ [${sessionId}] Validation failed but continuing: ${validationError.message}`);
+      const { default: ResearchAgent } = await import('../lib/researchAgent.js');
+      researchData = await ResearchAgent.gatherInsights(matter, keywords, target_description);
+      
+      const dataCategories = Object.keys(researchData).length;
+      if (dataCategories === 0) {
+        throw new Error('No research data gathered');
+      }
+      
+      sendStatus('success', `Research completed: ${dataCategories} data categories found`);
+    } catch (researchError) {
+      sendStatus('error', `Research failed: ${researchError.message}`);
+      return res.status(500).end();
     }
 
-    // Step 7: Store in Google Sheets
-    console.log(`📊 [${sessionId}] Step 7: Storing personas in Google Sheets...`);
+    // Step 5: Validate Data Sufficiency
+    sendStatus('processing', 'Validating data sufficiency for persona generation...');
+    const totalData = uploadedData.length + Object.keys(researchData).length;
+    
+    if (totalData < 3) {
+      sendStatus('error', `Insufficient data: only ${totalData} sources found, need minimum 3`, {
+        uploadedChunks: uploadedData.length,
+        researchCategories: Object.keys(researchData).length,
+        recommendations: [
+          'Upload more demographic or survey files',
+          'Provide more specific target description',
+          'Try different keywords for better research results'
+        ]
+      });
+      return res.status(422).end();
+    }
+
+    sendStatus('success', `Data validation passed: ${totalData} data sources available`);
+
+    // Step 6: Generate Personas
+    sendStatus('processing', 'Generating evidence-based personas...');
+    let personas = [];
+    
+    try {
+      const { default: PersonaAgent } = await import('../lib/personaAgent.js');
+      const personaResult = await PersonaAgent.generatePersonas(
+        matter, keywords, target_description, researchData, uploadedData, parseInt(persona_count) || 5
+      );
+
+      if (!personaResult.success) {
+        sendStatus('error', personaResult.message, {
+          error: personaResult.error,
+          recommendations: personaResult.recommendations
+        });
+        return res.status(422).end();
+      }
+
+      personas = personaResult.personas;
+      sendStatus('success', `Generated ${personas.length} evidence-based personas`, {
+        personaCount: personas.length,
+        confidence: personaResult.confidence
+      });
+
+    } catch (personaError) {
+      sendStatus('error', `Persona generation failed: ${personaError.message}`);
+      return res.status(500).end();
+    }
+
+    // Step 7: Store Results
+    sendStatus('processing', 'Storing personas in Google Sheets...');
     try {
       const { default: SheetsService } = await import('../lib/sheetsService.js');
       await SheetsService.storePersonas(personas, matter, sessionId);
-      console.log(`✅ [${sessionId}] Personas stored in Google Sheets`);
+      sendStatus('success', 'Personas stored in Google Sheets successfully');
     } catch (sheetsError) {
-      console.log(`⚠️ [${sessionId}] Google Sheets storage failed: ${sheetsError.message}`);
+      sendStatus('warning', `Google Sheets storage failed: ${sheetsError.message}`);
     }
 
-    // Step 8: Generate Report
-    console.log(`📋 [${sessionId}] Step 8: Generating final report...`);
-    const { default: ReportAgent } = await import('../lib/reportAgent.js');
-    const report = await ReportAgent.generateReport(personas, matter, researchData, sessionId);
-    
-    console.log(`🎉 [${sessionId}] Multi-AI Persona Generation COMPLETED SUCCESSFULLY`);
-    console.log(`📊 [${sessionId}] Results: ${personas.length} personas, confidence: ${personaResult.confidence.toFixed(1)}%`);
-
-    // Return Success Response
-    return res.status(200).json({
-      success: true,
+    // Final Success
+    sendStatus('completed', 'Multi-AI persona generation completed successfully!', {
+      personas: personas.map(p => ({
+        name: p.name,
+        age: p.age,
+        confidence: p.confidence_score
+      })),
       sessionId: sessionId,
-      personas: personas,
-      report: report,
-      dataAnalysis: {
-        totalDataPoints: personaResult.sourceDataCount,
-        confidence: personaResult.confidence,
-        researchCategories: Object.keys(researchData),
-        uploadedFiles: uploadedFiles.length,
-        validationPassed: true
-      },
-      processingTime: new Date().toISOString()
+      totalProcessingTime: 'Complete'
     });
+
+    return res.status(200).end();
 
   } catch (error) {
-    console.error(`💥 [${sessionId}] FATAL ERROR:`, error.message);
-    console.error(`📍 [${sessionId}] Stack trace:`, error.stack);
-    
-    return res.status(500).json({
-      error: 'PROCESSING_FAILED',
-      message: 'An unexpected error occurred during persona generation',
-      sessionId: sessionId,
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      timestamp: new Date().toISOString()
+    sendStatus('error', `Fatal error: ${error.message}`, {
+      stack: error.stack?.substring(0, 500)
     });
+    return res.status(500).end();
   }
 }
 
