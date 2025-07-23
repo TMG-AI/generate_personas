@@ -1,8 +1,15 @@
-// api/upload.js
-import { handleUpload } from "@vercel/blob/client";
+// api/upload.js - Handle FormData uploads and store in Vercel Blob
+import { put } from '@vercel/blob';
+import Busboy from 'busboy';
+
+export const config = {
+  api: {
+    bodyParser: false, // We'll handle parsing ourselves
+  },
+};
 
 export default async function handler(req, res) {
-  // Add CORS headers for your frontend
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -11,36 +18,35 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method === "POST") {
+  if (req.method === 'POST') {
     try {
-      console.log("📤 Blob upload request received");
+      console.log("📤 Processing file upload");
       
-      return await handleUpload({
-        request: req,
-        onBeforeGenerateToken: async () => {
-          console.log("🔐 Generating upload token");
-          return {
-            allowedContentTypes: [
-              "image/*", 
-              "application/pdf", 
-              "video/*",
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // Excel
-              "application/vnd.ms-excel", // Excel legacy
-              "text/csv",
-              "application/json",
-              "text/plain",
-              "application/msword",
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document" // Word
-            ],
-            maximumSizeInBytes: 5 * 1024 ** 3, // 5 GB - good for large datasets
-            validUntil: Date.now() + 1000 * 60 * 10, // 10 min
-          };
-        },
-        onUploadCompleted: async ({ blob }) => {
-          console.log("✅ Upload complete:", blob.url);
-          console.log("📊 File size:", blob.size, "bytes");
-        },
+      // Parse the multipart form data
+      const { files } = await parseFormData(req);
+      
+      if (files.length === 0) {
+        return res.status(400).json({ error: 'No file provided' });
+      }
+      
+      const file = files[0]; // Take the first file
+      console.log(`📁 Uploading file: ${file.filename} (${file.buffer.length} bytes)`);
+      
+      // Upload to Vercel Blob
+      const blob = await put(file.filename, file.buffer, {
+        access: 'public',
+        addRandomSuffix: true,
       });
+      
+      console.log("✅ Upload complete:", blob.url);
+      
+      return res.status(200).json({
+        url: blob.url,
+        size: blob.size,
+        filename: file.filename,
+        originalName: file.filename
+      });
+      
     } catch (error) {
       console.error("💥 Upload error:", error);
       return res.status(500).json({ 
@@ -51,4 +57,37 @@ export default async function handler(req, res) {
   }
   
   res.status(405).json({ error: "Method not allowed" });
+}
+
+// Parse multipart form data
+async function parseFormData(req) {
+  return new Promise((resolve, reject) => {
+    const busboy = Busboy({ headers: req.headers });
+    const fields = {};
+    const files = [];
+
+    busboy.on('field', (fieldname, value) => {
+      fields[fieldname] = value;
+    });
+
+    busboy.on('file', (fieldname, file, { filename, mimeType }) => {
+      const chunks = [];
+      file.on('data', chunk => chunks.push(chunk));
+      file.on('end', () => {
+        files.push({
+          fieldname,
+          filename,
+          mimeType,
+          buffer: Buffer.concat(chunks)
+        });
+      });
+    });
+
+    busboy.on('finish', () => {
+      resolve({ fields, files });
+    });
+
+    busboy.on('error', reject);
+    req.pipe(busboy);
+  });
 }
