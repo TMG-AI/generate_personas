@@ -574,6 +574,23 @@
                             </div>
                             <div class="uploaded-files" id="clientFiles"></div>
                             <input type="hidden" id="mri_file_url" name="mri_file_url">
+                            <div class="file-upload-area">
+                                <div class="upload-text">Click to browse or drag legal documents here</div>
+                                <div class="upload-subtext">PDF files only, up to 10MB</div>
+                                <input type="file" id="complaint_file" name="complaint_file" class="file-input" accept=".pdf">
+                                <input type="hidden" id="complaint_file_url" name="complaint_file_url">
+                                <span id="complaintStatus"></span>
+                            </div>
+                            <div class="uploaded-files" id="complaintFiles"></div>
+
+                            <div class="file-upload-area">
+                                <div class="upload-text">Click to browse or drag research files here</div>
+                                <div class="upload-subtext">PDF files only, up to 10MB</div>
+                                <input type="file" id="research_file" name="research_file" class="file-input" accept=".pdf">
+                                <input type="hidden" id="research_file_url" name="research_file_url">
+                                <span id="researchStatus"></span>
+                            </div>
+                            <div class="uploaded-files" id="researchFiles"></div>
 
                         </div>
 
@@ -1220,6 +1237,8 @@ if (clientUrl) formData.append('client_file_url', clientUrl);
             handleFileUpload('mri_file', 'mriFiles');
             handleFileUpload('targetsmart_file', 'targetsmartFiles');
             handleFileUpload('client_file', 'clientFiles');
+            handleFileUpload('complaint_file', 'complaintFiles');
+            handleFileUpload('research_file', 'researchFiles');
             
             // Set up multiple file upload for creative images
             handleMultipleFileUpload('creative_images', 'creativeImageFiles', 10);
@@ -1281,6 +1300,8 @@ const setupFileUpload = (inputId, statusId, hiddenId) => {
 setupFileUpload("mri_file", "mriStatus", "mri_file_url");
 setupFileUpload("targetsmart_file", "targetsmartStatus", "targetsmart_file_url");
 setupFileUpload("client_file", "clientStatus", "client_file_url");
+    setupFileUpload("complaint_file", "complaintStatus", "complaint_file_url");
+    setupFileUpload("research_file", "researchStatus", "research_file_url");
 
 console.log('Signal Digital Twin Platform loaded');
 </script>
