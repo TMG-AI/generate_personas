@@ -26,4 +26,9 @@
   "engines": {
     "node": ">=18.0.0"
   }
+  {
+  "dependencies": {
+    "@vercel/blob": "^0.23.4",
+    // ... other dependencies
+  }
 }
